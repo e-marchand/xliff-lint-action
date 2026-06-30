@@ -1,0 +1,83 @@
+# 4D XLIFF lint for GitLab CI/CD.
+#
+# GitLab cannot run a GitHub Action, but the two checks are dependency-free
+# Python scripts, so this template downloads them and runs them for you. It also
+# produces a GitLab Code Quality report, so findings show up in the merge
+# request widget.
+#
+# Use it from your own .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/e-marchand/xliff-lint-action/main/gitlab/xliff-lint.gitlab-ci.yml'
+#
+#   # optional overrides:
+#   xliff-lint:
+#     variables:
+#       XLIFF_SYNC_LANGUAGES: "fr,de"
+#       XLIFF_SYNC_CHECK_SOURCE_DRIFT: "false"
+#
+# All knobs are plain CI/CD variables (override them per-project or per-pipeline):
+#   XLIFF_LINT_REF                  git ref of the action to use         (default: main)
+#   XLIFF_PROJECT_PATH              path to the 4D project root          (default: .)
+#   XLIFF_LINT_UNUSED              run the unused trans-unit check       (default: true)
+#   XLIFF_LINT_4DM_ONLY           only scan .4dm files for usage         (default: false)
+#   XLIFF_CHECK_SYNC              run the language sync check            (default: true)
+#   XLIFF_SYNC_LANGUAGES         languages to check, or "all"           (default: all)
+#   XLIFF_SYNC_CHECK_MISSING     flag units missing from a language     (default: true)
+#   XLIFF_SYNC_CHECK_SOURCE_DRIFT flag localized source != English       (default: true)
+#   XLIFF_FAIL_ON_ERROR          fail the job when issues are found      (default: true)
+
+xliff-lint:
+  stage: test
+  image: python:3.12-slim
+  variables:
+    XLIFF_LINT_REF: "main"
+    XLIFF_PROJECT_PATH: "."
+    XLIFF_LINT_UNUSED: "true"
+    XLIFF_LINT_4DM_ONLY: "false"
+    XLIFF_CHECK_SYNC: "true"
+    XLIFF_SYNC_LANGUAGES: "all"
+    XLIFF_SYNC_CHECK_MISSING: "true"
+    XLIFF_SYNC_CHECK_SOURCE_DRIFT: "true"
+    XLIFF_FAIL_ON_ERROR: "true"
+  before_script:
+    - |
+      python3 - "$XLIFF_LINT_REF" <<'PY'
+      import sys, urllib.request
+      ref = sys.argv[1]
+      base = f"https://raw.githubusercontent.com/e-marchand/xliff-lint-action/{ref}"
+      for name in ("lint_xlf.py", "sync_xlf.py"):
+          urllib.request.urlretrieve(f"{base}/{name}", name)
+          print("downloaded", name)
+      PY
+  script:
+    - |
+      set -u
+      status=0
+      if [ "$XLIFF_LINT_UNUSED" = "true" ]; then
+        extra=""
+        [ "$XLIFF_LINT_4DM_ONLY" = "true" ] && extra="--4dm-only"
+        python3 lint_xlf.py --root "$XLIFF_PROJECT_PATH" --codequality gl-cq-lint.json $extra || status=1
+      fi
+      if [ "$XLIFF_CHECK_SYNC" = "true" ]; then
+        extra=""
+        [ "$XLIFF_SYNC_CHECK_MISSING" = "true" ] || extra="$extra --no-check-missing"
+        [ "$XLIFF_SYNC_CHECK_SOURCE_DRIFT" = "true" ] || extra="$extra --no-check-source-drift"
+        python3 sync_xlf.py --root "$XLIFF_PROJECT_PATH" --languages "$XLIFF_SYNC_LANGUAGES" --codequality gl-cq-sync.json $extra || status=1
+      fi
+      python3 - <<'PY'
+      import json, os
+      merged = []
+      for f in ("gl-cq-lint.json", "gl-cq-sync.json"):
+          if os.path.exists(f):
+              merged += json.load(open(f))
+      json.dump(merged, open("gl-code-quality-report.json", "w"), indent=2)
+      PY
+      if [ "$XLIFF_FAIL_ON_ERROR" = "true" ]; then exit $status; fi
+      exit 0
+  artifacts:
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json
+    paths:
+      - gl-code-quality-report.json

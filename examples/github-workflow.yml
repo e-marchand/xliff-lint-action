@@ -1,0 +1,30 @@
+# Drop this in your 4D project at .github/workflows/xliff-lint.yml
+name: XLIFF lint
+
+on:
+  push:
+    paths:
+      - "**/*.xlf"
+      - "**/*.4dm"
+  pull_request:
+    paths:
+      - "**/*.xlf"
+      - "**/*.4dm"
+
+jobs:
+  xliff-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: e-marchand/xliff-lint-action@v1
+        with:
+          # Path to the folder containing Resources/ (default: ".")
+          project-path: "."
+          # Check that every declared trans-unit is actually used (default: true)
+          lint-unused: "true"
+          # Check that translations stay in sync with English (default: true)
+          check-sync: "true"
+          # Limit the sync check to specific languages, or "all" (default: all)
+          sync-languages: "all"
+          # Source drift can be noisy mid-translation — turn it off if needed
+          sync-check-source-drift: "true"

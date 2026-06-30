@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+gl-code-quality-report.json
+gl-cq-*.json
+.DS_Store

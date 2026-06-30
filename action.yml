@@ -1,0 +1,92 @@
+name: "4D XLIFF Lint"
+description: "Lint 4D XLIFF translation files: detect unused trans-units and check that languages stay in sync with English."
+author: "e-marchand"
+
+branding:
+  icon: "globe"
+  color: "blue"
+
+inputs:
+  project-path:
+    description: "Path to the 4D project root (the folder that contains Resources/)."
+    required: false
+    default: "."
+
+  # --- unused trans-unit check (lint_xlf.py) ---
+  lint-unused:
+    description: "Run the unused trans-unit check."
+    required: false
+    default: "true"
+  lint-unused-4dm-only:
+    description: "Only scan .4dm files when deciding whether a resname is used."
+    required: false
+    default: "false"
+
+  # --- language sync check (sync_xlf.py) ---
+  check-sync:
+    description: "Run the language sync check against English."
+    required: false
+    default: "true"
+  sync-languages:
+    description: "Comma-separated languages to check (e.g. 'fr,de,ja') or 'all'."
+    required: false
+    default: "all"
+  sync-check-missing:
+    description: "Report trans-units present in English but missing in a language."
+    required: false
+    default: "true"
+  sync-check-source-drift:
+    description: "Report localized <source> text that differs from the English source."
+    required: false
+    default: "true"
+
+  # --- general ---
+  fail-on-error:
+    description: "Fail the job when issues are found (set 'false' to only annotate)."
+    required: false
+    default: "true"
+  python-version:
+    description: "Python version to set up before running the checks."
+    required: false
+    default: "3.x"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Lint unused trans-units
+      if: ${{ inputs.lint-unused == 'true' }}
+      shell: bash
+      run: |
+        args=(--root "${{ inputs.project-path }}" --format github)
+        if [ "${{ inputs.lint-unused-4dm-only }}" = "true" ]; then
+          args+=(--4dm-only)
+        fi
+        set +e
+        python3 "$GITHUB_ACTION_PATH/lint_xlf.py" "${args[@]}"
+        rc=$?
+        set -e
+        if [ "${{ inputs.fail-on-error }}" = "true" ]; then exit $rc; fi
+        exit 0
+
+    - name: Check language sync
+      if: ${{ always() && inputs.check-sync == 'true' }}
+      shell: bash
+      run: |
+        args=(--root "${{ inputs.project-path }}" --format github --languages "${{ inputs.sync-languages }}")
+        if [ "${{ inputs.sync-check-missing }}" != "true" ]; then
+          args+=(--no-check-missing)
+        fi
+        if [ "${{ inputs.sync-check-source-drift }}" != "true" ]; then
+          args+=(--no-check-source-drift)
+        fi
+        set +e
+        python3 "$GITHUB_ACTION_PATH/sync_xlf.py" "${args[@]}"
+        rc=$?
+        set -e
+        if [ "${{ inputs.fail-on-error }}" = "true" ]; then exit $rc; fi
+        exit 0
