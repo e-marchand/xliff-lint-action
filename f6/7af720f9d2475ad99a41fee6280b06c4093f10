@@ -1,0 +1,23 @@
+README.md
+  s_57befc6e75fde4::t_579c5abf47b040 183-207
+lint_xlf.py
+  s_57befc6e75fde4::t_82f8f9bd9d6248 96-102
+sync_xlf.py
+  s_57befc6e75fde4::t_b841999a75d12e 198-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.4",
+  "base_commit_sha": "f67af720f9d2475ad99a41fee6280b06c4093f10",
+  "prompts": {},
+  "sessions": {
+    "s_57befc6e75fde4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9aab37cd-d5e5-41bb-b643-27d2051213e5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Eric Marchand <eric.marchand@4d.com>"
+    }
+  }
+}
