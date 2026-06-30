@@ -195,7 +195,13 @@ class XlfFile:
 def find_repo_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
-    return Path(__file__).resolve().parent
+    # Normally this file lives at <root>/sync_xlf.py. When piped to python
+    # (curl ... | python3 -), __file__ is '<stdin>' or unset, so fall back to
+    # the current directory.
+    script = globals().get("__file__")
+    if script and script != "<stdin>":
+        return Path(script).resolve().parent
+    return Path.cwd()
 
 
 def is_translated(unit: Unit) -> bool:

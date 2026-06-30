@@ -180,6 +180,31 @@ The full template is in
 
 ## Running locally / standalone
 
+### One-off run with curl (nothing saved)
+
+From the root of your 4D project, pipe a script straight into Python. With no
+`--root`, each script lints the **current directory**:
+
+```bash
+# unused trans-units in the current project
+curl -fsSL https://raw.githubusercontent.com/e-marchand/xliff-lint-action/main/lint_xlf.py | python3 -
+
+# language sync in the current project
+curl -fsSL https://raw.githubusercontent.com/e-marchand/xliff-lint-action/main/sync_xlf.py | python3 -
+```
+
+Pass any option after `python3 -`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/e-marchand/xliff-lint-action/main/lint_xlf.py | python3 - --fix
+curl -fsSL https://raw.githubusercontent.com/e-marchand/xliff-lint-action/main/sync_xlf.py | python3 - --languages fr,de --no-check-source-drift
+```
+
+> Need a different folder? Add `--root path/to/project`. Pin a version by
+> replacing `main` in the URL with a tag (e.g. `v1`).
+
+### Save the scripts in your project
+
 By default each script treats its own folder as the project root, so the simplest
 setup is to drop them at the root of your 4D project. Copy them in:
 

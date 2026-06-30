@@ -93,8 +93,13 @@ def make_issue(check: str, severity: str, description: str, path: str, line: int
 def find_repo_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
-    # This file lives at <root>/lint_xlf.py
-    return Path(__file__).resolve().parent
+    # Normally this file lives at <root>/lint_xlf.py. When piped to python
+    # (curl ... | python3 -), __file__ is '<stdin>' or unset, so fall back to
+    # the current directory.
+    script = globals().get("__file__")
+    if script and script != "<stdin>":
+        return Path(script).resolve().parent
+    return Path.cwd()
 
 
 def iter_source_files(root: Path, suffixes: set[str]) -> list[Path]:
